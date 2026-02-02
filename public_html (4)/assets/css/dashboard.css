@@ -1,0 +1,278 @@
+ /* ===============================
+   DASHBOARD BASE + NAVBAR
+   =============================== */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* NAVBAR */
+.navbar {
+    height: 64px;
+    background: #0f766e;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+}
+
+.navbar .brand {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.navbar .menu a {
+    color: #ffffff;
+    text-decoration: none;
+    margin-left: 20px;
+    font-size: 14px;
+}
+
+.navbar .menu a:hover {
+    text-decoration: underline;
+}
+
+/* DASHBOARD WRAPPER */
+.dashboard-wrapper {
+    min-height: calc(100vh - 64px);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 16px;
+}
+
+/* CARD */
+.card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 520px;
+    padding: 32px;
+    border-radius: 16px;
+    box-shadow: 0 20px 45px rgba(0,0,0,0.25);
+}
+
+.card h2 {
+    margin-bottom: 22px;
+    font-size: 22px;
+    color: #111827;
+}
+
+.primary-btn, .secondary-btn {
+    display:inline-block;
+    padding:14px 20px;
+    border-radius:10px;
+    text-decoration:none;
+    margin-top:15px;
+}
+
+.primary-btn {
+    background:#0f766e;
+    color:#fff;
+}
+
+.secondary-btn {
+    background:#e5e7eb;
+    color:#111;
+}
+
+.warning-box {
+    background:#fff3cd;
+    padding:16px;
+    border-radius:10px;
+    color:#92400e;
+}
+
+.action-grid {
+    display:flex;
+    gap:20px;
+    flex-wrap:wrap;
+    margin-top:20px;
+}
+
+.action-card {
+    padding:18px 22px;
+    background:#0891b2;
+    color:#fff;
+    border-radius:12px;
+    text-decoration:none;
+}
+
+/* ================= MOBILE RESPONSIVE ================= */
+@media (max-width: 768px) {
+
+    body {
+        font-size: 14px;
+    }
+
+    /* 🔥 FIX: allow navbar to expand */
+    .navbar {
+        height: auto;              /* KEY FIX */
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px 16px;
+    }
+
+    /* 🔥 FIX: ensure menu is visible */
+    .navbar .menu {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .navbar .menu a {
+        width: 100%;
+        padding: 10px;
+        margin-left: 0;            /* reset desktop margin */
+        text-align: left;
+    }
+
+    .dashboard-wrapper {
+        padding: 12px;
+    }
+
+    .card {
+        width: 100%;
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    input,
+    textarea,
+    button {
+        font-size: 15px;
+    }
+
+    textarea {
+        min-height: 80px;
+    }
+
+    .primary-btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* ================= FORM LAYOUT ================= */
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.full {
+    grid-column: span 2;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    font-size: 14px;
+}
+
+.form-group textarea {
+    min-height: 90px;
+    resize: vertical;
+}
+
+.form-group label {
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: #374151;
+}
+
+/* ================= HOSPITAL PROFILE ONLY ================= */
+
+.card.hospital-card {
+    max-width: 760px;
+}
+
+/* Improve form spacing visually */
+.form-group input,
+.form-group textarea {
+    height: 44px;
+}
+
+.form-group textarea {
+    height: auto;
+}
+
+/* ================= MOBILE FORM FIXES ================= */
+
+.file-input {
+    padding: 10px;
+    background: #f9fafb;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+}
+
+.full-btn {
+    width: 100%;
+    text-align: center;
+    font-size: 16px;
+}
+/* ===== FIX WHITE TEXT IN ACCOUNT CARD ===== */
+.card {
+    color: #0f172a; /* dark readable text */
+}
+
+.card p,
+.card label,
+.card span,
+.card div {
+    color: #0f172a;
+}
+.primary-btn {
+    width: 100%;
+    padding: 12px;
+    margin-top: 15px;
+
+    background-color: #2563eb; /* strong blue */
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+
+    transition: background 0.2s ease;
+}
+
+.primary-btn:hover {
+    background-color: #1e40af;
+}
+
+
+
+
+
+

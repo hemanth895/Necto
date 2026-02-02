@@ -1,0 +1,215 @@
+ /* ===============================
+   GLOBAL RESET
+================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* ===============================
+   BODY BACKGROUND
+================================ */
+body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f766e, #0d9488);
+    color: #ffffff;
+}
+
+/* ===============================
+   DASHBOARD WRAPPER
+================================ */
+.dashboard-wrapper {
+    min-height: 100vh;
+    padding: 40px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+/* ===============================
+   PROFILE CONTAINER
+================================ */
+.profile-container {
+    width: 100%;
+    max-width: 1200px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border-radius: 18px;
+    padding: 30px 40px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+/* ===============================
+   HEADINGS
+================================ */
+.profile-container h2 {
+    font-size: 26px;
+    margin-bottom: 25px;
+    font-weight: 600;
+}
+
+.section {
+    margin-bottom: 30px;
+}
+
+.section h3 {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: #ecfeff;
+}
+
+/* ===============================
+   GRID LAYOUTS
+================================ */
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 15px;
+}
+
+.grid-1 {
+    display: grid;
+    grid-template-columns: 1fr;
+}
+
+/* ===============================
+   FORM INPUTS
+================================ */
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    background: #ffffff;
+    color: #000000;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* ===============================
+   FILE INPUT
+================================ */
+input[type="file"] {
+    background: transparent;
+    color: #ffffff;
+}
+
+/* ===============================
+   CHECKBOX
+================================ */
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.checkbox-row input {
+    width: auto;
+}
+
+/* ===============================
+   BUTTON
+================================ */
+button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 20px;
+    background: #0f766e;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+button:hover {
+    background: #115e59;
+}
+
+/* ===============================
+   DISABLED / LOCKED STATE
+================================ */
+.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* ===============================
+   MOBILE RESPONSIVE
+================================ */
+@media (max-width: 900px) {
+    .grid-3,
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-container {
+        padding: 25px 20px;
+    }
+
+    .profile-container h2 {
+        font-size: 22px;
+    }
+}
+/* ===== GLOBAL WAITING CURSOR ===== */
+body.waiting {
+    cursor: wait;
+}
+
+/* ===== FULL PAGE LOADING OVERLAY ===== */
+#loadingOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,255,0.75);
+    z-index: 9999;
+}
+
+#loadingOverlay::after {
+    content: "";
+    width: 40px;
+    height: 40px;
+    border: 4px solid #ccc;
+    border-top-color: #007bff;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+/* ===== FIX WHITE TEXT IN ACCOUNT CARD ===== */
+.card {
+    color: #0f172a; /* dark readable text */
+}
+
+.card p,
+.card label,
+.card span,
+.card div {
+    color: #0f172a;
+}
+
