@@ -60,3 +60,4 @@ yarn-error.log*
 # Generated files
 *.gz
 *.zip
+public_html/
