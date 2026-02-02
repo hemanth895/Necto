@@ -30,10 +30,10 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RealIP)
 
-	r.Route("/api/auth", authH.Routes)
-	r.Route("/api/hospital", hospitalH.Routes)
-	r.Route("/api/staff", staffH.Routes)
-	r.Route("/api/admin", adminH.Routes)
+	r.Mount("/api/auth", authH.Routes())
+	r.Mount("/api/hospital", hospitalH.Routes())
+	r.Mount("/api/staff", staffH.Routes())
+	r.Mount("/api/admin", adminH.Routes())
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

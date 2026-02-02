@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 
 	"necto/backend/internal/config"
 	"necto/backend/internal/database"
