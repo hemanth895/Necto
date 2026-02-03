@@ -7,9 +7,10 @@ import (
 	"necto/backend/internal/config"
 	"necto/backend/internal/database"
 	"necto/backend/internal/handlers"
+	"necto/backend/internal/middleware"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimw "github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
@@ -26,9 +27,10 @@ func main() {
 	adminH := handlers.NewAdminHandler(cfg, pool)
 
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.RealIP)
+	r.Use(middleware.CORS)
+	r.Use(chimw.Logger)
+	r.Use(chimw.Recoverer)
+	r.Use(chimw.RealIP)
 
 	r.Mount("/api/auth", authH.Routes())
 	r.Mount("/api/hospital", hospitalH.Routes())
