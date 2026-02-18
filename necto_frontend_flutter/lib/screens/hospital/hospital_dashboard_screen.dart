@@ -52,7 +52,9 @@ class _HospitalDashboardScreenState extends State<HospitalDashboardScreen> {
             TextButton(onPressed: () => context.go('/hospital/profile'), child: const Text('Profile', style: TextStyle(color: Colors.white))),
             if (_verified) ...[
               TextButton(onPressed: () => context.go('/hospital/post-shift'), child: const Text('Post Shift', style: TextStyle(color: Colors.white))),
-              TextButton(onPressed: () => context.go('/hospital/post-shift'), child: const Text('View Staff', style: TextStyle(color: Colors.white))),
+              TextButton(onPressed: () => context.go('/hospital/shifts'), child: const Text('My Shifts', style: TextStyle(color: Colors.white))),
+              TextButton(onPressed: () => context.go('/hospital/requests'), child: const Text('Requests', style: TextStyle(color: Colors.white))),
+              TextButton(onPressed: () => context.go('/hospital/booked-shifts'), child: const Text('Booked Shifts', style: TextStyle(color: Colors.white))),
             ],
           ],
           TextButton(
@@ -122,11 +124,18 @@ class _HospitalDashboardScreenState extends State<HospitalDashboardScreen> {
                           ),
                           const SizedBox(width: 16),
                           ElevatedButton(
-                            onPressed: () {
-                              // View staff requires a shift id; we'll list shifts or use latest
-                              context.go('/hospital');
-                            },
-                            child: const Text('View Available Staff'),
+                            onPressed: () => context.go('/hospital/shifts'),
+                            child: const Text('My Shifts'),
+                          ),
+                          const SizedBox(width: 16),
+                          ElevatedButton(
+                            onPressed: () => context.go('/hospital/requests'),
+                            child: const Text('Requests'),
+                          ),
+                          const SizedBox(width: 16),
+                          ElevatedButton(
+                            onPressed: () => context.go('/hospital/booked-shifts'),
+                            child: const Text('Booked Shifts'),
                           ),
                         ],
                       ),

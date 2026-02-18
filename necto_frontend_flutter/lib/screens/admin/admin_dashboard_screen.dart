@@ -52,6 +52,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           TextButton(onPressed: () => context.go('/admin'), child: const Text('Dashboard', style: TextStyle(color: Colors.white))),
           TextButton(onPressed: () => context.go('/admin/staff'), child: const Text('Verify Staff', style: TextStyle(color: Colors.white))),
           TextButton(onPressed: () => context.go('/admin/hospitals'), child: const Text('Verify Hospitals', style: TextStyle(color: Colors.white))),
+          TextButton(onPressed: () => context.go('/admin/shifts'), child: const Text('All Shifts', style: TextStyle(color: Colors.white))),
+          TextButton(onPressed: () => context.go('/admin/requests'), child: const Text('All Requests', style: TextStyle(color: Colors.white))),
           TextButton(
             onPressed: () async {
               await context.read<AuthProvider>().logout();
@@ -92,16 +94,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    Row(
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
                       children: [
                         ElevatedButton(
                           onPressed: () => context.go('/admin/staff'),
                           child: const Text('Review Staff →'),
                         ),
-                        const SizedBox(width: 16),
                         ElevatedButton(
                           onPressed: () => context.go('/admin/hospitals'),
                           child: const Text('Review Hospitals →'),
+                        ),
+                        OutlinedButton(
+                          onPressed: () => context.go('/admin/shifts'),
+                          child: const Text('View All Shifts'),
+                        ),
+                        OutlinedButton(
+                          onPressed: () => context.go('/admin/requests'),
+                          child: const Text('View Requests'),
                         ),
                       ],
                     ),

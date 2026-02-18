@@ -12,7 +12,7 @@ docker compose up --build
 - **API**: http://localhost:8080  
 - **PostgreSQL**: localhost:5432 (user `necto`, password `necto`, db `necto_db`)
 
-Migrations in `migrations/001_init.sql` run automatically on first Postgres startup (via `docker-entrypoint-initdb.d`).
+Migrations in `migrations/` run automatically on first Postgres startup (via `docker-entrypoint-initdb.d`). If you already had a database before `002_shift_requests_notifications.sql` was added, run it manually: `docker exec -i backend-postgres-1 psql -U necto -d necto_db < migrations/002_shift_requests_notifications.sql` (from the `backend` directory).
 
 ## Run locally (no Docker)
 

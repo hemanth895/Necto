@@ -11,13 +11,21 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/auth/reset_password_screen.dart';
 import 'screens/landing_screen.dart';
+import 'screens/admin/admin_requests_screen.dart';
+import 'screens/admin/admin_shifts_screen.dart';
+import 'screens/hospital/hospital_booked_shifts_screen.dart';
 import 'screens/hospital/hospital_dashboard_screen.dart';
 import 'screens/hospital/hospital_profile_screen.dart';
+import 'screens/hospital/hospital_requests_screen.dart';
+import 'screens/hospital/hospital_shifts_screen.dart';
 import 'screens/hospital/post_shift_screen.dart';
 import 'screens/hospital/view_available_staff_screen.dart';
 import 'screens/staff/post_availability_screen.dart';
+import 'screens/staff/staff_booked_shifts_screen.dart';
 import 'screens/staff/staff_dashboard_screen.dart';
+import 'screens/staff/staff_notifications_screen.dart';
 import 'screens/staff/staff_profile_screen.dart';
+import 'screens/staff/staff_requests_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -85,11 +93,23 @@ GoRouter createRouter(BuildContext context, AuthProvider auth) {
         builder: (context, state) => const PostShiftScreen(),
       ),
       GoRoute(
+        path: '/hospital/shifts',
+        builder: (context, state) => const HospitalShiftsScreen(),
+      ),
+      GoRoute(
         path: '/hospital/shifts/:id/staff',
         builder: (context, state) {
           final id = state.pathParameters['id'] ?? '';
           return ViewAvailableStaffScreen(shiftId: id);
         },
+      ),
+      GoRoute(
+        path: '/hospital/requests',
+        builder: (context, state) => const HospitalRequestsScreen(),
+      ),
+      GoRoute(
+        path: '/hospital/booked-shifts',
+        builder: (context, state) => const HospitalBookedShiftsScreen(),
       ),
       GoRoute(
         path: '/staff',
@@ -104,6 +124,18 @@ GoRouter createRouter(BuildContext context, AuthProvider auth) {
         builder: (context, state) => const PostAvailabilityScreen(),
       ),
       GoRoute(
+        path: '/staff/requests',
+        builder: (context, state) => const StaffRequestsScreen(),
+      ),
+      GoRoute(
+        path: '/staff/booked-shifts',
+        builder: (context, state) => const StaffBookedShiftsScreen(),
+      ),
+      GoRoute(
+        path: '/staff/notifications',
+        builder: (context, state) => const StaffNotificationsScreen(),
+      ),
+      GoRoute(
         path: '/admin',
         builder: (context, state) => const AdminDashboardScreen(),
       ),
@@ -114,6 +146,14 @@ GoRouter createRouter(BuildContext context, AuthProvider auth) {
       GoRoute(
         path: '/admin/hospitals',
         builder: (context, state) => const AdminHospitalVerificationScreen(),
+      ),
+      GoRoute(
+        path: '/admin/shifts',
+        builder: (context, state) => const AdminShiftsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/requests',
+        builder: (context, state) => const AdminRequestsScreen(),
       ),
     ],
   );

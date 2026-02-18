@@ -46,8 +46,13 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
         title: const Text('Necto'),
         actions: [
           TextButton(onPressed: () => context.go('/staff'), child: const Text('Home', style: TextStyle(color: Colors.white))),
-          if (_hasProfile && _verified)
+          if (_hasProfile) TextButton(onPressed: () => context.go('/staff/profile'), child: const Text('Profile', style: TextStyle(color: Colors.white))),
+          if (_hasProfile && _verified) ...[
             TextButton(onPressed: () => context.go('/staff/availability'), child: const Text('Post Availability', style: TextStyle(color: Colors.white))),
+            TextButton(onPressed: () => context.go('/staff/requests'), child: const Text('Requests', style: TextStyle(color: Colors.white))),
+            TextButton(onPressed: () => context.go('/staff/booked-shifts'), child: const Text('Booked Shifts', style: TextStyle(color: Colors.white))),
+            TextButton(onPressed: () => context.go('/staff/notifications'), child: const Text('Notifications', style: TextStyle(color: Colors.white))),
+          ],
           TextButton(
             onPressed: () async {
               await context.read<AuthProvider>().logout();
@@ -97,9 +102,28 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                         child: const Text('Verification completed! You can now post your availability for hospitals.'),
                       ),
                       const SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: () => context.go('/staff/availability'),
-                        child: const Text('Post Availability'),
+                      Row(
+                        children: [
+                          ElevatedButton(
+                            onPressed: () => context.go('/staff/availability'),
+                            child: const Text('Post Availability'),
+                          ),
+                          const SizedBox(width: 16),
+                          ElevatedButton(
+                            onPressed: () => context.go('/staff/requests'),
+                            child: const Text('Requests'),
+                          ),
+                          const SizedBox(width: 16),
+                          ElevatedButton(
+                            onPressed: () => context.go('/staff/booked-shifts'),
+                            child: const Text('Booked Shifts'),
+                          ),
+                          const SizedBox(width: 16),
+                          OutlinedButton(
+                            onPressed: () => context.go('/staff/notifications'),
+                            child: const Text('Notifications'),
+                          ),
+                        ],
                       ),
                     ],
                   ],
