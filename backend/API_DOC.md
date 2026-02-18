@@ -103,10 +103,32 @@ All hospital endpoints require authentication and role `hospital`.
 ```
 - Response: 201 `{ "id": <shift_id>, "message":"shift posted" }`
 
+### GET /api/hospital/shifts
+- Returns the authenticated hospital's shifts.
+- Response: `{ "shifts": [ { "id", "shift_date", "start_time", "end_time", "role_required", "degree_required", "stream_required", "status", "payment_amount", "payment_type", "created_at" }, ... ] }`
+
 ### GET /api/hospital/shifts/{id}/available-staff
 - Path param: `id` = shift id
 - Returns a list of available staff for the given shift (requires hospital ownership of shift).
-- Response: `{ "shift_id": <id>, "staff": [ ... ] }`
+- Response: `{ "shift_id": <id>, "staff": [ { "availability_id", "staff_id", "full_name", "degree", "specialization", "experience_years", "current_institution", "working_role", "latitude", "longitude", "distance", "profile_photo" }, ... ] }`
+
+### POST /api/hospital/shifts/{id}/request
+- Send a shift request to one staff. Body: `{ "staff_id": <user id>, "availability_id": <id> }`
+- Response: 201 `{ "id": <request_id>, "message": "request sent" }`
+
+### GET /api/hospital/requests
+- List all requests sent by this hospital.
+- Response: `{ "requests": [ { "request_id", "shift_id", "shift_date", "start_time", "end_time", "role_required", "payment_amount", "status", "staff_id", "staff_name", "degree", "stream", "distance_km", "created_at" }, ... ] }`
+
+### GET /api/hospital/booked-shifts
+- List accepted requests (contact details revealed).
+- Response: `{ "booked_shifts": [ { "request_id", "shift_id", "shift_date", "staff_name", "staff_mobile", "staff_email", "staff_address", ... }, ... ] }`
+
+### GET /api/hospital/notifications
+- Response: `{ "notifications": [ { "id", "title", "message", "is_read", "created_at" }, ... ] }`
+
+### POST /api/hospital/notifications/{id}/read
+- Mark notification as read.
 
 ---
 
@@ -163,6 +185,28 @@ All staff endpoints require authentication and role `staff`.
 ```
 - Response: 201 `{ "message":"availability posted" }`
 
+### GET /api/staff/requests
+- List shift requests received (contact hidden until accepted).
+- Response: `{ "requests": [ { "request_id", "shift_id", "hospital_name", "shift_date", "start_time", "end_time", "role_required", "payment_amount", "distance_km", "status", "address", "latitude", "longitude" }, ... ] }`
+
+### POST /api/staff/requests/{id}/accept
+- Accept a pending request. Shift and availability are closed; contact revealed to hospital.
+- Response: 200 `{ "message": "accepted" }`
+
+### POST /api/staff/requests/{id}/reject
+- Reject a pending request. Body (optional): `{ "rejection_reason": "..." }`
+- Response: 200 `{ "message": "rejected" }`
+
+### GET /api/staff/booked-shifts
+- List accepted shifts (hospital contact revealed).
+- Response: `{ "booked_shifts": [ { "request_id", "shift_id", "hospital_name", "shift_date", "hospital_telephone", "hospital_contact", "address", ... }, ... ] }`
+
+### GET /api/staff/notifications
+- Response: `{ "notifications": [ { "id", "title", "message", "is_read", "created_at" }, ... ] }`
+
+### POST /api/staff/notifications/{id}/read
+- Mark notification as read.
+
 ---
 
 ## Admin Endpoints (role: admin)
@@ -179,6 +223,14 @@ Require admin token.
 
 ### GET /api/admin/hospital/pending
 - Returns list of pending hospital profiles.
+
+### GET /api/admin/shifts
+- Returns all shifts.
+- Response: `{ "shifts": [ { "id", "hospital_name", "shift_date", "start_time", "end_time", "role_required", "degree", "stream", "status", "payment_amount", "created_at" }, ... ] }`
+
+### GET /api/admin/requests
+- Returns all shift requests.
+- Response: `{ "requests": [ { "request_id", "shift_id", "hospital_name", "staff_name", "shift_date", "status", "created_at" }, ... ] }`
 
 ### POST /api/admin/staff/{id}/verify
 - Approve or reject a staff profile.

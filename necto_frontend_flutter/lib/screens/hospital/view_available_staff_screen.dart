@@ -18,6 +18,7 @@ class _ViewAvailableStaffScreenState extends State<ViewAvailableStaffScreen> {
   List<dynamic> _staff = [];
   String? _error;
   bool _loading = true;
+  int? _sendingRequestFor; // index or availability_id to show loading
 
   @override
   void initState() {
@@ -36,6 +37,32 @@ class _ViewAvailableStaffScreenState extends State<ViewAvailableStaffScreen> {
         _error = _staff.isEmpty ? 'No available staff for this shift.' : null;
       } else {
         _error = res.error ?? 'Failed to load staff';
+      }
+    });
+  }
+
+  Future<void> _sendRequest(dynamic staffItem) async {
+    final staffId = staffItem['StaffID'] ?? staffItem['staff_id'];
+    final availabilityId = staffItem['AvailabilityID'] ?? staffItem['availability_id'];
+    if (staffId == null || availabilityId == null) return;
+    setState(() {
+      _error = null;
+      _sendingRequestFor = availabilityId is int ? availabilityId : int.tryParse(availabilityId.toString());
+    });
+    final api = context.read<AuthProvider>().apiClient;
+    final res = await api.post('/api/hospital/shifts/${widget.shiftId}/request', {
+      'staff_id': staffId,
+      'availability_id': availabilityId,
+    });
+    if (!mounted) return;
+    setState(() {
+      _sendingRequestFor = null;
+      if (res.isOk) {
+        _error = null;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Request sent successfully.')));
+        _load();
+      } else {
+        _error = res.error ?? 'Failed to send request';
       }
     });
   }
@@ -71,14 +98,17 @@ class _ViewAvailableStaffScreenState extends State<ViewAvailableStaffScreen> {
                       const Padding(padding: EdgeInsets.only(top: 24), child: Text('No staff available for this shift.')),
                     if (_staff.isNotEmpty) ...[
                       const SizedBox(height: 24),
-                      ..._staff.map((e) {
-                        final name = e['full_name'] ?? e['name'] ?? '—';
-                        final degree = e['degree'] ?? '—';
-                        final stream = e['specialization'] ?? e['stream'] ?? '—';
-                        final exp = e['experience_years'] ?? '—';
-                        final institution = e['current_institution'] ?? '—';
-                        final role = e['working_role'] ?? '—';
-                        final distance = e['distance'];
+                      ..._staff.asMap().entries.map((entry) {
+                        final e = entry.value;
+                        final name = e['full_name'] ?? e['FullName'] ?? e['name'] ?? '—';
+                        final degree = e['degree'] ?? e['Degree'] ?? '—';
+                        final stream = e['specialization'] ?? e['Specialization'] ?? e['stream'] ?? '—';
+                        final exp = e['experience_years'] ?? e['ExperienceYears'] ?? '—';
+                        final institution = e['current_institution'] ?? e['CurrentInstitution'] ?? '—';
+                        final role = e['working_role'] ?? e['WorkingRole'] ?? '—';
+                        final distance = e['distance'] ?? e['Distance'];
+                        final distNum = distance is num ? distance.toDouble() : (distance != null ? double.tryParse(distance.toString()) : null);
+                        final sending = _sendingRequestFor != null && (_sendingRequestFor == (e['availability_id'] ?? e['AvailabilityID']));
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12),
                           child: Padding(
@@ -86,13 +116,18 @@ class _ViewAvailableStaffScreenState extends State<ViewAvailableStaffScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                Text(name.toString(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 8),
                                 Text('$degree – $stream'),
                                 Text('Experience: $exp years'),
                                 Text('Institution: $institution'),
                                 Text('Role: $role'),
-                                if (distance != null) Text('Distance: ${distance.toStringAsFixed(1)} km'),
+                                if (distNum != null) Text('Distance: ${distNum.toStringAsFixed(1)} km'),
+                                const SizedBox(height: 12),
+                                ElevatedButton(
+                                  onPressed: sending ? null : () => _sendRequest(e),
+                                  child: sending ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Send Request'),
+                                ),
                               ],
                             ),
                           ),

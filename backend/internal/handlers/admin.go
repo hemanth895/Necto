@@ -28,6 +28,8 @@ func (h *AdminHandler) Routes() chi.Router {
 	r.Get("/dashboard", h.Dashboard)
 	r.Get("/staff/pending", h.ListPendingStaff)
 	r.Get("/hospital/pending", h.ListPendingHospitals)
+	r.Get("/shifts", h.ListShifts)
+	r.Get("/requests", h.ListRequests)
 	r.Post("/staff/{id}/verify", h.VerifyStaff)
 	r.Post("/hospital/{id}/verify", h.VerifyHospital)
 	return r
@@ -88,6 +90,14 @@ func (h *AdminHandler) VerifyStaff(w http.ResponseWriter, r *http.Request) {
 		Error(w, http.StatusInternalServerError, "failed to update")
 		return
 	}
+	userID, _ := database.GetUserIDByStaffProfileID(r.Context(), h.pool, id)
+	if userID > 0 {
+		if req.Approve {
+			_ = database.CreateStaffNotification(r.Context(), h.pool, userID, "Profile verified", "Your staff profile has been verified. You can now post availability.")
+		} else {
+			_ = database.CreateStaffNotification(r.Context(), h.pool, userID, "Profile rejected", "Your staff profile was not approved. Reason: "+req.RejectionReason)
+		}
+	}
 	JSON(w, http.StatusOK, map[string]string{"message": "updated"})
 }
 
@@ -114,5 +124,47 @@ func (h *AdminHandler) VerifyHospital(w http.ResponseWriter, r *http.Request) {
 		Error(w, http.StatusInternalServerError, "failed to update")
 		return
 	}
+	userID, _ := database.GetUserIDByHospitalProfileID(r.Context(), h.pool, id)
+	if userID > 0 {
+		if req.Approve {
+			_ = database.CreateHospitalNotification(r.Context(), h.pool, userID, "Hospital verified", "Your hospital profile has been verified. You can now post shifts.")
+		} else {
+			_ = database.CreateHospitalNotification(r.Context(), h.pool, userID, "Verification rejected", "Your hospital profile was not approved. Reason: "+req.RejectionReason)
+		}
+	}
 	JSON(w, http.StatusOK, map[string]string{"message": "updated"})
+}
+
+func (h *AdminHandler) ListShifts(w http.ResponseWriter, r *http.Request) {
+	list, err := database.AdminListShifts(r.Context(), h.pool)
+	if err != nil {
+		Error(w, http.StatusInternalServerError, "failed to load shifts")
+		return
+	}
+	out := make([]map[string]interface{}, 0, len(list))
+	for _, row := range list {
+		out = append(out, map[string]interface{}{
+			"id": row.ID, "hospital_name": row.HospitalName, "shift_date": row.ShiftDate,
+			"start_time": row.StartTime, "end_time": row.EndTime, "role_required": row.RoleRequired,
+			"degree": row.Degree, "stream": row.Stream, "status": row.Status,
+			"payment_amount": row.PaymentAmount, "created_at": row.CreatedAt,
+		})
+	}
+	JSON(w, http.StatusOK, map[string]interface{}{"shifts": out})
+}
+
+func (h *AdminHandler) ListRequests(w http.ResponseWriter, r *http.Request) {
+	list, err := database.AdminListRequests(r.Context(), h.pool)
+	if err != nil {
+		Error(w, http.StatusInternalServerError, "failed to load requests")
+		return
+	}
+	out := make([]map[string]interface{}, 0, len(list))
+	for _, row := range list {
+		out = append(out, map[string]interface{}{
+			"request_id": row.RequestID, "shift_id": row.ShiftID, "hospital_name": row.HospitalName,
+			"staff_name": row.StaffName, "shift_date": row.ShiftDate, "status": row.Status, "created_at": row.CreatedAt,
+		})
+	}
+	JSON(w, http.StatusOK, map[string]interface{}{"requests": out})
 }

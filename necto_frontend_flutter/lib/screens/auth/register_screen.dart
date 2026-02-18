@@ -122,13 +122,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 16),
                         const Text('Account type', style: TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),
-                        Row(
+                        Wrap(
+                          spacing: 16,
+                          runSpacing: 8,
                           children: [
-                            Radio<String>(value: 'hospital', groupValue: _role, onChanged: (v) => setState(() => _role = v!)),
-                            const Text('Hospital'),
-                            const SizedBox(width: 16),
-                            Radio<String>(value: 'staff', groupValue: _role, onChanged: (v) => setState(() => _role = v!)),
-                            const Text('Paramedical Staff'),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Radio<String>(value: 'hospital', groupValue: _role, onChanged: (v) => setState(() => _role = v!)),
+                                const Text('Hospital'),
+                              ],
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Radio<String>(value: 'staff', groupValue: _role, onChanged: (v) => setState(() => _role = v!)),
+                                const Text('Paramedical Staff'),
+                              ],
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Radio<String>(value: 'admin', groupValue: _role, onChanged: (v) => setState(() => _role = v!)),
+                                const Text('Admin'),
+                              ],
+                            ),
                           ],
                         ),
                         const SizedBox(height: 12),

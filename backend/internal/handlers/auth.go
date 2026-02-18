@@ -91,8 +91,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Error(w, http.StatusBadRequest, "all fields are required")
 		return
 	}
-	if req.Role != "hospital" && req.Role != "staff" {
-		Error(w, http.StatusBadRequest, "please select account type (hospital or staff)")
+	if req.Role != "hospital" && req.Role != "staff" && req.Role != "admin" {
+		Error(w, http.StatusBadRequest, "please select account type (hospital, staff, or admin)")
 		return
 	}
 	if !req.AgreeTerms {

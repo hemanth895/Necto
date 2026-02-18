@@ -142,6 +142,41 @@ func GetHospitalShift(ctx context.Context, pool *pgxpool.Pool, shiftID, hospital
 	return degree, stream, shiftDate, startTime, endTime, lat, lng, status, err
 }
 
+// HospitalShiftRow for listing a hospital's shifts
+type HospitalShiftRow struct {
+	ID             int64
+	ShiftDate      string
+	StartTime      string
+	EndTime        string
+	RoleRequired   string
+	Degree         string
+	Stream         string
+	Status         string
+	PaymentAmount  float64
+	PaymentType    string
+	CreatedAt      string
+}
+
+func GetHospitalShiftsByUserID(ctx context.Context, pool *pgxpool.Pool, hospitalID int64) ([]HospitalShiftRow, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT id, shift_date::text, start_time::text, end_time::text, role_required, required_degree, required_stream, status, payment_amount, payment_type, created_at::text
+		FROM hospital_shifts WHERE hospital_id = $1 ORDER BY shift_date DESC, start_time DESC`,
+		hospitalID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []HospitalShiftRow
+	for rows.Next() {
+		var row HospitalShiftRow
+		if err := rows.Scan(&row.ID, &row.ShiftDate, &row.StartTime, &row.EndTime, &row.RoleRequired, &row.Degree, &row.Stream, &row.Status, &row.PaymentAmount, &row.PaymentType, &row.CreatedAt); err != nil {
+			return nil, err
+		}
+		list = append(list, row)
+	}
+	return list, rows.Err()
+}
+
 // Staff availability
 func CreateStaffAvailability(ctx context.Context, pool *pgxpool.Pool, staffID int64, state, district, taluka, workDate, startTime, endTime string, lat, lng float64) (int64, error) {
 	var id int64
@@ -284,4 +319,388 @@ func GetAvailableStaffForShift(ctx context.Context, pool *pgxpool.Pool, shiftLat
 		list = append(list, row)
 	}
 	return list, rows.Err()
+}
+
+// CreateShiftRequest creates a pending request from hospital to staff for a shift.
+func CreateShiftRequest(ctx context.Context, pool *pgxpool.Pool, shiftID, availabilityID, staffID, hospitalID int64, distanceKm float64) (int64, error) {
+	var id int64
+	err := pool.QueryRow(ctx,
+		`INSERT INTO shift_requests (shift_id, availability_id, staff_id, hospital_id, status, distance_km)
+		 VALUES ($1,$2,$3,$4,'pending',$5) RETURNING id`,
+		shiftID, availabilityID, staffID, hospitalID, distanceKm,
+	).Scan(&id)
+	return id, err
+}
+
+// GetShiftRequestByID returns request and ensures it belongs to the given staff or hospital.
+func GetShiftRequestByID(ctx context.Context, pool *pgxpool.Pool, requestID, staffIDOrHospitalID int64, forStaff bool) (shiftID, availabilityID, staffID, hospitalID int64, status string, err error) {
+	var q string
+	if forStaff {
+		q = `SELECT shift_id, availability_id, staff_id, hospital_id, status FROM shift_requests WHERE id = $1 AND staff_id = $2`
+	} else {
+		q = `SELECT shift_id, availability_id, staff_id, hospital_id, status FROM shift_requests WHERE id = $1 AND hospital_id = $2`
+	}
+	err = pool.QueryRow(ctx, q, requestID, staffIDOrHospitalID).Scan(&shiftID, &availabilityID, &staffID, &hospitalID, &status)
+	return shiftID, availabilityID, staffID, hospitalID, status, err
+}
+
+// AcceptShiftRequest updates request to accepted, closes shift and availability.
+func AcceptShiftRequest(ctx context.Context, pool *pgxpool.Pool, requestID int64) error {
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	_, err = tx.Exec(ctx, `UPDATE shift_requests SET status = 'accepted', responded_at = CURRENT_TIMESTAMP WHERE id = $1`, requestID)
+	if err != nil {
+		return err
+	}
+	var shiftID, availabilityID int64
+	err = tx.QueryRow(ctx, `SELECT shift_id, availability_id FROM shift_requests WHERE id = $1`, requestID).Scan(&shiftID, &availabilityID)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, `UPDATE hospital_shifts SET status = 'closed' WHERE id = $1`, shiftID)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, `UPDATE staff_availability SET status = 'closed' WHERE id = $1`, availabilityID)
+	if err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+// RejectShiftRequest updates request to rejected.
+func RejectShiftRequest(ctx context.Context, pool *pgxpool.Pool, requestID int64, reason string) error {
+	_, err := pool.Exec(ctx, `UPDATE shift_requests SET status = 'rejected', responded_at = CURRENT_TIMESTAMP, rejection_reason = $1 WHERE id = $2`, reason, requestID)
+	return err
+}
+
+// HospitalRequestsRow for GET /api/hospital/requests
+type HospitalRequestsRow struct {
+	RequestID     int64
+	ShiftID       int64
+	ShiftDate     string
+	StartTime     string
+	EndTime       string
+	RoleRequired  string
+	PaymentAmount float64
+	Status        string
+	StaffID       int64
+	StaffName     string
+	Degree        string
+	Stream        string
+	DistanceKm    *float64
+	CreatedAt     string
+}
+
+func GetHospitalRequests(ctx context.Context, pool *pgxpool.Pool, hospitalID int64) ([]HospitalRequestsRow, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT sr.id, sr.shift_id, hs.shift_date::text, hs.start_time::text, hs.end_time::text, hs.role_required, hs.payment_amount,
+		       sr.status, sr.staff_id, sp.full_name, sp.degree, sp.stream, sr.distance_km, sr.created_at::text
+		FROM shift_requests sr
+		JOIN hospital_shifts hs ON hs.id = sr.shift_id
+		JOIN staff_profiles sp ON sp.user_id = sr.staff_id
+		WHERE sr.hospital_id = $1
+		ORDER BY sr.created_at DESC`,
+		hospitalID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []HospitalRequestsRow
+	for rows.Next() {
+		var row HospitalRequestsRow
+		if err := rows.Scan(&row.RequestID, &row.ShiftID, &row.ShiftDate, &row.StartTime, &row.EndTime, &row.RoleRequired, &row.PaymentAmount,
+			&row.Status, &row.StaffID, &row.StaffName, &row.Degree, &row.Stream, &row.DistanceKm, &row.CreatedAt); err != nil {
+			return nil, err
+		}
+		list = append(list, row)
+	}
+	return list, rows.Err()
+}
+
+// HospitalBookedShiftRow for GET /api/hospital/booked-shifts (accepted requests with contact)
+type HospitalBookedShiftRow struct {
+	RequestID      int64
+	ShiftID        int64
+	ShiftDate      string
+	StartTime      string
+	EndTime        string
+	RoleRequired   string
+	PaymentAmount float64
+	StaffID        int64
+	StaffName      string
+	StaffMobile    string
+	StaffEmail     string
+	StaffAddress   string
+	Degree         string
+	Stream         string
+}
+
+func GetHospitalBookedShifts(ctx context.Context, pool *pgxpool.Pool, hospitalID int64) ([]HospitalBookedShiftRow, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT sr.id, sr.shift_id, hs.shift_date::text, hs.start_time::text, hs.end_time::text, hs.role_required, hs.payment_amount,
+		       sr.staff_id, sp.full_name, sp.mobile, sp.email, sp.address, sp.degree, sp.stream
+		FROM shift_requests sr
+		JOIN hospital_shifts hs ON hs.id = sr.shift_id
+		JOIN staff_profiles sp ON sp.user_id = sr.staff_id
+		WHERE sr.hospital_id = $1 AND sr.status = 'accepted'
+		ORDER BY hs.shift_date DESC, hs.start_time DESC`,
+		hospitalID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []HospitalBookedShiftRow
+	for rows.Next() {
+		var row HospitalBookedShiftRow
+		if err := rows.Scan(&row.RequestID, &row.ShiftID, &row.ShiftDate, &row.StartTime, &row.EndTime, &row.RoleRequired, &row.PaymentAmount,
+			&row.StaffID, &row.StaffName, &row.StaffMobile, &row.StaffEmail, &row.StaffAddress, &row.Degree, &row.Stream); err != nil {
+			return nil, err
+		}
+		list = append(list, row)
+	}
+	return list, rows.Err()
+}
+
+// StaffRequestRow for GET /api/staff/requests (contact hidden until accepted)
+type StaffRequestRow struct {
+	RequestID     int64
+	ShiftID       int64
+	HospitalName  string
+	ShiftDate     string
+	StartTime     string
+	EndTime       string
+	RoleRequired  string
+	PaymentAmount float64
+	DistanceKm    *float64
+	Status        string
+	Address       string
+	Latitude      string
+	Longitude     string
+}
+
+func GetStaffRequests(ctx context.Context, pool *pgxpool.Pool, staffID int64) ([]StaffRequestRow, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT sr.id, sr.shift_id, hs.hospital_name, hs.shift_date::text, hs.start_time::text, hs.end_time::text,
+		       hs.role_required, hs.payment_amount, sr.distance_km, sr.status, COALESCE(hs.notes,'') AS address, hs.latitude, hs.longitude
+		FROM shift_requests sr
+		JOIN hospital_shifts hs ON hs.id = sr.shift_id
+		WHERE sr.staff_id = $1
+		ORDER BY sr.created_at DESC`,
+		staffID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []StaffRequestRow
+	for rows.Next() {
+		var row StaffRequestRow
+		if err := rows.Scan(&row.RequestID, &row.ShiftID, &row.HospitalName, &row.ShiftDate, &row.StartTime, &row.EndTime,
+			&row.RoleRequired, &row.PaymentAmount, &row.DistanceKm, &row.Status, &row.Address, &row.Latitude, &row.Longitude); err != nil {
+			return nil, err
+		}
+		list = append(list, row)
+	}
+	return list, rows.Err()
+}
+
+// StaffBookedShiftRow for GET /api/staff/booked-shifts (accepted, with hospital contact)
+type StaffBookedShiftRow struct {
+	RequestID          int64
+	ShiftID            int64
+	HospitalName       string
+	ShiftDate          string
+	StartTime          string
+	EndTime            string
+	RoleRequired       string
+	PaymentAmount      float64
+	HospitalTelephone  string
+	HospitalContact    string
+	Address            string
+}
+
+func GetStaffBookedShifts(ctx context.Context, pool *pgxpool.Pool, staffID int64) ([]StaffBookedShiftRow, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT sr.id, sr.shift_id, hs.hospital_name, hs.shift_date::text, hs.start_time::text, hs.end_time::text,
+		       hs.role_required, hs.payment_amount, hp.telephone, hp.contact_number, COALESCE(hs.notes,'')
+		FROM shift_requests sr
+		JOIN hospital_shifts hs ON hs.id = sr.shift_id
+		JOIN hospital_profiles hp ON hp.user_id = sr.hospital_id
+		WHERE sr.staff_id = $1 AND sr.status = 'accepted'
+		ORDER BY hs.shift_date DESC, hs.start_time DESC`,
+		staffID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []StaffBookedShiftRow
+	for rows.Next() {
+		var row StaffBookedShiftRow
+		if err := rows.Scan(&row.RequestID, &row.ShiftID, &row.HospitalName, &row.ShiftDate, &row.StartTime, &row.EndTime,
+			&row.RoleRequired, &row.PaymentAmount, &row.HospitalTelephone, &row.HospitalContact, &row.Address); err != nil {
+			return nil, err
+		}
+		list = append(list, row)
+	}
+	return list, rows.Err()
+}
+
+// ShiftHasActiveRequest returns true if shift has pending or accepted request.
+func ShiftHasActiveRequest(ctx context.Context, pool *pgxpool.Pool, shiftID int64) (bool, error) {
+	var exists bool
+	err := pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM shift_requests WHERE shift_id = $1 AND status IN ('pending','accepted'))`, shiftID).Scan(&exists)
+	return exists, err
+}
+
+// AdminListShiftsRow for GET /api/admin/shifts
+type AdminListShiftsRow struct {
+	ID            int64
+	HospitalName  string
+	ShiftDate     string
+	StartTime     string
+	EndTime       string
+	RoleRequired  string
+	Degree        string
+	Stream        string
+	Status        string
+	PaymentAmount float64
+	CreatedAt     string
+}
+
+func AdminListShifts(ctx context.Context, pool *pgxpool.Pool) ([]AdminListShiftsRow, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT id, hospital_name, shift_date::text, start_time::text, end_time::text, role_required, required_degree, required_stream, status, payment_amount, created_at::text
+		FROM hospital_shifts ORDER BY created_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []AdminListShiftsRow
+	for rows.Next() {
+		var row AdminListShiftsRow
+		if err := rows.Scan(&row.ID, &row.HospitalName, &row.ShiftDate, &row.StartTime, &row.EndTime, &row.RoleRequired, &row.Degree, &row.Stream, &row.Status, &row.PaymentAmount, &row.CreatedAt); err != nil {
+			return nil, err
+		}
+		list = append(list, row)
+	}
+	return list, rows.Err()
+}
+
+// AdminListRequestsRow for GET /api/admin/requests
+type AdminListRequestsRow struct {
+	RequestID    int64
+	ShiftID      int64
+	HospitalName string
+	StaffName    string
+	ShiftDate    string
+	Status       string
+	CreatedAt    string
+}
+
+func AdminListRequests(ctx context.Context, pool *pgxpool.Pool) ([]AdminListRequestsRow, error) {
+	rows, err := pool.Query(ctx, `
+		SELECT sr.id, sr.shift_id, hs.hospital_name, sp.full_name, hs.shift_date::text, sr.status, sr.created_at::text
+		FROM shift_requests sr
+		JOIN hospital_shifts hs ON hs.id = sr.shift_id
+		JOIN staff_profiles sp ON sp.user_id = sr.staff_id
+		ORDER BY sr.created_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []AdminListRequestsRow
+	for rows.Next() {
+		var row AdminListRequestsRow
+		if err := rows.Scan(&row.RequestID, &row.ShiftID, &row.HospitalName, &row.StaffName, &row.ShiftDate, &row.Status, &row.CreatedAt); err != nil {
+			return nil, err
+		}
+		list = append(list, row)
+	}
+	return list, rows.Err()
+}
+
+// Notifications
+func CreateStaffNotification(ctx context.Context, pool *pgxpool.Pool, staffID int64, title, message string) error {
+	_, err := pool.Exec(ctx, `INSERT INTO staff_notifications (staff_id, title, message) VALUES ($1,$2,$3)`, staffID, title, message)
+	return err
+}
+
+func CreateHospitalNotification(ctx context.Context, pool *pgxpool.Pool, hospitalID int64, title, message string) error {
+	_, err := pool.Exec(ctx, `INSERT INTO hospital_notifications (hospital_id, title, message) VALUES ($1,$2,$3)`, hospitalID, title, message)
+	return err
+}
+
+type StaffNotificationRow struct {
+	ID        int64
+	Title     string
+	Message   string
+	IsRead    string
+	CreatedAt string
+}
+
+func GetStaffNotifications(ctx context.Context, pool *pgxpool.Pool, staffID int64) ([]StaffNotificationRow, error) {
+	rows, err := pool.Query(ctx, `SELECT id, title, message, is_read, created_at::text FROM staff_notifications WHERE staff_id = $1 ORDER BY created_at DESC LIMIT 100`, staffID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []StaffNotificationRow
+	for rows.Next() {
+		var row StaffNotificationRow
+		if err := rows.Scan(&row.ID, &row.Title, &row.Message, &row.IsRead, &row.CreatedAt); err != nil {
+			return nil, err
+		}
+		list = append(list, row)
+	}
+	return list, rows.Err()
+}
+
+type HospitalNotificationRow struct {
+	ID        int64
+	Title     string
+	Message   string
+	IsRead    string
+	CreatedAt string
+}
+
+func GetHospitalNotifications(ctx context.Context, pool *pgxpool.Pool, hospitalID int64) ([]HospitalNotificationRow, error) {
+	rows, err := pool.Query(ctx, `SELECT id, title, message, is_read, created_at::text FROM hospital_notifications WHERE hospital_id = $1 ORDER BY created_at DESC LIMIT 100`, hospitalID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []HospitalNotificationRow
+	for rows.Next() {
+		var row HospitalNotificationRow
+		if err := rows.Scan(&row.ID, &row.Title, &row.Message, &row.IsRead, &row.CreatedAt); err != nil {
+			return nil, err
+		}
+		list = append(list, row)
+	}
+	return list, rows.Err()
+}
+
+func MarkStaffNotificationRead(ctx context.Context, pool *pgxpool.Pool, notificationID, staffID int64) error {
+	_, err := pool.Exec(ctx, `UPDATE staff_notifications SET is_read = 'yes' WHERE id = $1 AND staff_id = $2`, notificationID, staffID)
+	return err
+}
+
+func MarkHospitalNotificationRead(ctx context.Context, pool *pgxpool.Pool, notificationID, hospitalID int64) error {
+	_, err := pool.Exec(ctx, `UPDATE hospital_notifications SET is_read = 'yes' WHERE id = $1 AND hospital_id = $2`, notificationID, hospitalID)
+	return err
+}
+
+func GetUserIDByStaffProfileID(ctx context.Context, pool *pgxpool.Pool, profileID int64) (int64, error) {
+	var userID int64
+	err := pool.QueryRow(ctx, `SELECT user_id FROM staff_profiles WHERE id = $1`, profileID).Scan(&userID)
+	return userID, err
+}
+
+func GetUserIDByHospitalProfileID(ctx context.Context, pool *pgxpool.Pool, profileID int64) (int64, error) {
+	var userID int64
+	err := pool.QueryRow(ctx, `SELECT user_id FROM hospital_profiles WHERE id = $1`, profileID).Scan(&userID)
+	return userID, err
 }
