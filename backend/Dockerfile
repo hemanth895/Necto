@@ -6,9 +6,11 @@ COPY backend/ .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /api ./cmd/api
 
 FROM alpine:3.19
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates postgresql-client
 WORKDIR /app
 COPY --from=builder /api .
 COPY backend/migrations ./migrations
+COPY backend/entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
 EXPOSE 8080
-CMD ["./api"]
+CMD ["./entrypoint.sh"]
